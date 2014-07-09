@@ -197,6 +197,11 @@ public class Parser {
   //
 
   /**
+   * private tags
+   */
+  private static final String TAG_CATALOG = "catalog";
+
+  /**
    * the calling engine
    */
   private SwingEngine engine;
@@ -385,6 +390,10 @@ public class Parser {
    */
   @SuppressWarnings({"RedundantArrayCreation", "NullArgumentToVariableArgMethod"})
   Object getSwing(Element element, Object obj) throws Exception {
+
+	// if this is a catalog, don't process it to the swing tree.
+	if (element.getNodeName() != null && element.getNodeName().equalsIgnoreCase(TAG_CATALOG))
+		return obj;
 
     Factory factory = engine.getTaglib().getFactory(element.getNodeName());
     //  look for <id> attribute value
@@ -883,26 +892,35 @@ public class Parser {
    * @param target <code>Element</code> target to receive more attributes
    */
   private void cloneAttributes(Element target) {
-    Element source = null;
-    if (Attribute.getAttributeValue(target,Parser.ATTR_REFID) != null) {
-      source = find(jdoc.getDocumentElement(), Attribute.getAttributeValue(target,Parser.ATTR_REFID).trim());
-    } else if (Attribute.getAttributeValue(target,Parser.ATTR_USE) != null) {
-      source = find(jdoc.getDocumentElement(), Attribute.getAttributeValue(target,Parser.ATTR_USE).trim());
-    }
-    if (source != null) {
-      NamedNodeMap it = source.getAttributes();
-      for(int i=0;i<it.getLength();i++) {
-        Attr attr = (Attr)it.item(i);
-        String name = attr.getName().trim();
-        //
-        //  copy but don't overwrite an attr.
-        //  also, don't copy the id attr.
-        //
-        if (!Parser.ATTR_ID.equals(name) && Attribute.getAttributeValue(target,name) == null) {
-          target.setAttribute(attr.getName(), attr.getValue());
-        }
-      } // end while
-    }
+	  Element current = target;
+
+	  // walk the parent list until all attributes have been aggregated.
+	  while (current != null)
+	  {
+		  Element source = null;
+
+		  if (Attribute.getAttributeValue(current,Parser.ATTR_REFID) != null) {
+			  source = find(jdoc.getDocumentElement(), Attribute.getAttributeValue(current,Parser.ATTR_REFID).trim());
+		  } else if (Attribute.getAttributeValue(current,Parser.ATTR_USE) != null) {
+			  source = find(jdoc.getDocumentElement(), Attribute.getAttributeValue(current,Parser.ATTR_USE).trim());
+		  }
+		  if (source != null) {
+			  NamedNodeMap it = source.getAttributes();
+			  for(int i=0;i<it.getLength();i++) {
+				  Attr attr = (Attr)it.item(i);
+				  String name = attr.getName().trim();
+				  //
+				  //  copy but don't overwrite an attr.
+				  //  also, don't copy the id attr.
+				  //
+				  if (!Parser.ATTR_REFID.equals(name) && !Parser.ATTR_ID.equals(name) && Attribute.getAttributeValue(target,name) == null) {
+					  target.setAttribute(attr.getName(), attr.getValue());
+				  }
+			  } // end while
+		  }
+		  
+		  current = source;
+	  }
   }
 
 
